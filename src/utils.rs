@@ -1,9 +1,20 @@
 use egg::{*, rewrite as rw}; 
 
+pub fn test_code(){
+    use egg::{*, SymbolLang as S};
+    let mut egraph = EGraph::<S, ()>::default();
+    let x = egraph.add(S::leaf("x"));
+    let y = egraph.add(S::leaf("y"));
+    let plus = egraph.add(S::new("+", vec![x, y]));
+    let plus_recexpr = "(+ x y)".parse().unwrap();
+    assert_eq!(plus, egraph.add_expr(&plus_recexpr));
+}
+
 pub fn generate_tree() -> RecExpr<SimpleLanguage> {
     // Define the expression
     // let expr: RecExpr<SimpleLanguage> = "(list 3 4)".parse().unwrap();
     let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
+    // let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
     
     // Return the expression 
     expr
@@ -20,91 +31,60 @@ pub fn simple_expr() -> RecExpr<SimpleLanguage> {
 
 define_language! {
     pub enum SimpleLanguage {
-        // string variant with no children
-        "pi" = Pi,
 
-        // string variants with an array of child `Id`s (any static size)
-        // any type that implements LanguageChildren may be used here
-        "+" = Add([Id; 2]),
-        "-" = Sub([Id; 2]),
-        "*" = Mul([Id; 2]),
-        "black" = Black([Id; 2]),
+        // Let consider that we are the white pieces, 
+        // and our goal is **maximize** the evaluation...
+        // Therefore, when presented with a choice of moves, 
+        // we will select the move that maximizes the evaluation.
+        // We will assume that black plays perfectly. 
+        // That is to say that black will always pick the move that 
+        // **minimizes** the evaluation.
+
+        // White pieces
+        "white" = White([Id; 2]),
         "max" = Max([Id; 1]),
 
-        // can also do a variable number of children in a boxed slice
-        // this will only match if the lengths are the same
-        "list" = List(Box<[Id]>),
+        // Black pieces
+        "black" = Black([Id; 2]),
+        "min" = Min([Id; 1]),
 
-        // string variants with a single child `Id`
-        // note that this is distinct from `Sub`, even though it has the same
-        // string, because it has a different number of children
-        "-"  = Neg(Id),
-
-        // data variants with a single field
-        // this field must implement `FromStr` and `Display`
+        // Our evaluation will just be integers for simplicity
         Num(i32),
-        // language items are parsed in order, and we want symbol to
-        // be a fallback, so we put it last
-        Symbol(Symbol),
-        // This is the ultimate fallback, it will parse any operator (as a string)
-        // and any number of children.
-        // Note that if there were 0 children, the previous branch would have succeeded
-        Other(Symbol, Vec<Id>),
+
+    }
+}
+
+impl SimpleLanguage {
+    /// Create a tuple with the given operation and children
+    pub fn new(op: impl Into<Symbol>, children: Vec<Id>) -> (Symbol, Vec<Id>) {
+        let op = op.into();
+        (op, children)
     }
 }
 
 fn make_rules() -> Vec<Rewrite<SimpleLanguage, ()>> {
     vec![
-        rw!("commute-add"; "(+ ?a ?b)" => "(+ ?b ?a)"),
-        rw!("commute-mul"; "(* ?a ?b)" => "(* ?b ?a)"),
-        rw!("add-0"; "(+ ?a 0)" => "?a"),
-        rw!("mul-0"; "(* ?a 0)" => "0"),
-        rw!("mul-1"; "(* ?a 1)" => "?a"),
-        rw!("div-mul-same"; "(/ (* ?b ?a) ?b)" => "?a"),
-
-        // Define some rules for taking the min or max of each of the leafs
-        // rw!("white-wants-max"; "(white ?a ?b)" => "?a"),
-        // rw!("black-wants-min"; "(black ?a ?b)" => "?b")
-
-        // rewrite!("silly"; "(black ?a ?b)" => { MySillyApplier("foo") }),
-        rw!("funky"; "(black ?a ?b)" => { MaxApplier {
+        // Again, when considering a move as the white player (us),
+        // we pick the move that maximizes the evaluation
+        rw!("white-wants-max"; "(white ?a ?b)" => { MaxApplier {
             a: "?a".parse().unwrap(),
             b: "?b".parse().unwrap(),
         }}),
 
-        // rw!("white-wants-max"; "(white ?a ?b)" => "?a" if max_rule("?a", "?b") ),
-        // rw!("black-wants-min"; "(black ?a ?b)" => "?b" )
+        // Similarly, when considering a move as the black player (our opponent),
+        // we assume they play perfectly (i.e., pick the move that minimizing the eval)
+        rw!("black-wants-min"; "(black ?a ?b)" => { MaxApplier {
+            a: "?b".parse().unwrap(),
+            b: "?a".parse().unwrap(),
+        }}),
     ]
 }
 
-// See https://docs.rs/egg/latest/egg/trait.Applier.html
-
-struct Funky {
-    a: Var,
-    b: Var
-}
-
-impl Applier<SimpleLanguage, ()> for Funky {
-
-    fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
-        let a: Id = subst[self.a];
-        let b: Id = subst[self.b];
-        println!("a: {:?}", a);
-        println!("b: {:?}", b);
-        let a0: Id = egraph.add(SimpleLanguage::Max([a]));
-        if egraph.union(matched_id, a0) {
-            vec![a0]
-        } else {
-            vec![]
-        }
-    }
-}
-#[derive(Debug)]
+// See https://docs.rs/egg/latest/egg/trait.Applier.html for more information
 struct MaxApplier {
     a: Var,
     b: Var
 }
-
 impl Applier<SimpleLanguage, ()> for MaxApplier {
 
     fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
@@ -114,97 +94,77 @@ impl Applier<SimpleLanguage, ()> for MaxApplier {
         println!("b   : {:?}", &self.b);
         println!("a_id: {:?}", a_id);
         println!("b_id: {:?}", b_id);
-        let value_a = &egraph[a_id].nodes;
-        let value_b = &egraph[b_id].nodes;
-        println!("a_ns: {:?}", value_a);
-        println!("b_ns: {:?}", value_b);
+        let value_a = &egraph[a_id].nodes.iter().min();
+        let value_b = &egraph[b_id].nodes.iter().min();
+        println!("a_nodes: {:?}", &egraph[a_id].nodes);
+        println!("b_nodes: {:?}", &egraph[b_id].nodes);
+        println!("a_min  : {:?}", &egraph[a_id].nodes.iter().min());
+        println!("b_min  : {:?}", &egraph[b_id].nodes.iter().min());
 
         println!("compare: {:?}", value_a > value_b);
-        
-        let new_id: Id; 
+                
+        let new_id: Id;
         if value_a > value_b {
             new_id = egraph.add(SimpleLanguage::Max([a_id]));
         } else {
             new_id = egraph.add(SimpleLanguage::Max([b_id]));
         }
+        for class in egraph.classes() {
+            println!("class: {:?}", class);
+        }
 
-        // let a0: Id = egraph.add(SimpleLanguage::Max([new_id]));
+        let new_id_temp = SimpleLanguage::new("black", vec![a_id,matched_id]);
+        println!("new_id_temp: {:?}", new_id_temp);
+
         if egraph.union(matched_id, new_id) {
             vec![new_id]
         } else {
             vec![]
         }
+
+        // if egraph.union(matched_id, new_num_id) {
+        //     vec![new_num_id]
+        // } else {
+        //     vec![]
+        // }
     }
 }
 
-// fn max_rule(var_a: &'static str, var_b: &'static str) -> impl Fn(&mut EGraph<SimpleLanguage,()>, Id, &Subst) -> bool {
-//     let var_a: Var = var_a.parse().unwrap();
-//     let var_b: Var = var_b.parse().unwrap();
-//     println!("var_a: {}", var_a);
-//     println!("bool : {}", var_a.max(var_b) == var_a);
-//     move |egraph, _, subst| var_a.max(var_b) == var_a
-//     // move |egraph, _, subst| !egraph[subst[var]].nodes.max(&var)
+// struct MinApplier {
+//     a: Var,
+//     b: Var
 // }
+// impl Applier<SimpleLanguage, ()> for MinApplier {
 
-fn max_rule(var_a: &'static str, var_b: &'static str) -> impl Fn(&mut EGraph<SimpleLanguage,()>, Id, &Subst) -> bool {
-    let var_a = var_a.parse().unwrap();
-    let var_b = var_b.parse().unwrap();
+//     fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
+//         let a_id: Id = subst[self.a];
+//         let b_id: Id = subst[self.b];
+//         println!("a   : {:?}", &self.a);
+//         println!("b   : {:?}", &self.b);
+//         println!("a_id: {:?}", a_id);
+//         println!("b_id: {:?}", b_id);
+//         let value_a = &egraph[a_id].nodes;
+//         let value_b = &egraph[b_id].nodes;
+//         println!("a_ns: {:?}", value_a);
+//         println!("b_ns: {:?}", value_b);
 
-    move |egraph, _, subst| {
-        let value_a = &egraph[subst[var_a]];
-        let value_b = &egraph[subst[var_b]];
+//         println!("compare: {:?}", value_a > value_b);
+        
+//         let new_id: Id; 
+//         if value_a > value_b {
+//             new_id = egraph.add(SimpleLanguage::Min([b_id]));
+//         } else {
+//             new_id = egraph.add(SimpleLanguage::Min([a_id]));
+//         }
 
-        // println!("a: {:?}", value_a);
-        println!("a: {:?}", value_a.nodes);
-        // println!("a: {:?}", value_a.nodes[0]);
-        // println!("a: {:?}", value_a.nodes[0].children());
-        // println!("a: {:?}", value_a.nodes[0].children().iter().max());
-        println!("a: {:?}", value_a.nodes.iter().max());
-
-
-
-        // You'll need to implement a way to compare these two values
-        // For this example, let's assume there's a method `get_numeric_value` 
-        // which extracts a numeric value from an e-graph node
-        value_a.data > value_b.data
-    }
-}
-#[derive(Debug)]
-struct MySillyApplier(&'static str);
-impl Applier<SimpleLanguage, ()> for MySillyApplier {
-    fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, in_id: Id, _: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
-        println!("{:?}", self);
-        println!("{:?}", self.0);
-        println!("{:?}", in_id);
-        println!("{:?}", egraph[in_id]);
-        println!("{:?}", egraph[in_id].nodes);
-        let new_id = egraph.add(SimpleLanguage::Other(self.0.into(),vec![]));
-        vec![new_id]
-    }
-}
-
-fn min_rule(var_a: &'static str, var_b: &'static str) -> impl Fn(&mut EGraph<SimpleLanguage,()>, Id, &Subst) -> bool {
-    let var_a: Var = var_a.parse().unwrap();
-    let var_b: Var = var_b.parse().unwrap();
-    println!("var_a: {}", var_a);
-    println!("bool : {}", var_a.max(var_b) == var_b);
-    move |egraph, _, subst| var_a.max(var_b) == var_a
-    // move |egraph, _, subst| !egraph[subst[var]].nodes.max(&var)
-}
-
-// fn min_rule(var: &'static str) -> impl Fn(&mut EGraph<SimpleLanguage,()>, Id, &Subst) -> bool {
-//     let var = var.parse().unwrap();
-//     let zero = SimpleLanguage::Num(0);
-//     move |egraph, _, subst| egraph[subst[var]].nodes.iter().min() == Some(&zero)
-//     // move |egraph, _, subst| !egraph[subst[var]].nodes.max(&var)
+//         // let a0: Id = egraph.add(SimpleLanguage::Max([new_id]));
+//         if egraph.union(matched_id, new_id) {
+//             vec![new_id]
+//         } else {
+//             vec![]
+//         }
+//     }
 // }
-
-// This returns a function that implements Condition
-fn is_not_zero(var: &'static str) -> impl Fn(&mut EGraph<SimpleLanguage,()>, Id, &Subst) -> bool {
-    let var = var.parse().unwrap();
-    let zero = SimpleLanguage::Num(0);
-    move |egraph, _, subst| !egraph[subst[var]].nodes.contains(&zero)
-}
 
 pub fn simplify(string_expr: RecExpr<SimpleLanguage>) -> RecExpr<SimpleLanguage> {
 
