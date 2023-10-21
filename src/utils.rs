@@ -103,8 +103,13 @@ impl Applier<SimpleLanguage, ()> for MaxApplier {
         println!("  child a: {} ", a_id);
         println!("  child b: {} ", b_id);
 
+        // let temp: EClass<SimpleLanguage, ()> = egraph[matched_id];
+        println!("eclass at the parent Id: {:?}", egraph[matched_id]);
 
+        for node in egraph[a_id].nodes.iter() {
+            println!("node: {}", node);
 
+        }
 
         vec![]
 
@@ -170,6 +175,8 @@ pub fn simplify(string_expr: RecExpr<SimpleLanguage>) -> RecExpr<SimpleLanguage>
 
     // Visualize the new E-Graph as a png
     my_runner.egraph.dot().to_png("target/new_egraph.png").unwrap();
+
+    // Print out the classes for clarity 
     for class in my_runner.egraph.classes() {
         println!("class {:?}", class);
     }
