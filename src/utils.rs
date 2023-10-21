@@ -88,42 +88,28 @@ struct MaxApplier {
 impl Applier<SimpleLanguage, ()> for MaxApplier {
 
     fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
-        let a_id: Id = subst[self.a];
-        let b_id: Id = subst[self.b];
-        println!("a   : {:?}", &self.a);
-        println!("b   : {:?}", &self.b);
-        println!("a_id: {:?}", a_id);
-        println!("b_id: {:?}", b_id);
-        let value_a = &egraph[a_id].nodes.iter().min();
-        let value_b = &egraph[b_id].nodes.iter().min();
-        println!("a_nodes: {:?}", &egraph[a_id].nodes);
-        println!("b_nodes: {:?}", &egraph[b_id].nodes);
-        println!("a_min  : {:?}", &egraph[a_id].nodes.iter().min());
-        println!("b_min  : {:?}", &egraph[b_id].nodes.iter().min());
 
-        println!("compare: {:?}", value_a > value_b);
-                
-        let new_id: Id;
-        if value_a > value_b {
-            new_id = egraph.add(SimpleLanguage::Max([a_id]));
-        } else {
-            new_id = egraph.add(SimpleLanguage::Max([b_id]));
-        }
-        for class in egraph.classes() {
-            println!("class: {:?}", class);
-        }
+        // Let's begin discussing what we have access to:
+        //  self.a is the Var of the a enode
+        //  self.b is the Var of the b enode
+        //  egraph is the input EGraph
+        //  matched_id is the Id input root enode
+        //  subst maps from Var to Id
+        // Therefore, we can grab the two children Id's of our parent Id (matched_id)
+        let a_id = subst[self.a];
+        let b_id = subst[self.b];
+        println!("parent Id: {} ", matched_id);
+        println!("  has children");
+        println!("  child a: {} ", a_id);
+        println!("  child b: {} ", b_id);
 
-        let new_id_temp = SimpleLanguage::new("black", vec![a_id,matched_id]);
-        println!("new_id_temp: {:?}", new_id_temp);
 
-        if egraph.union(matched_id, new_id) {
-            vec![new_id]
-        } else {
-            vec![]
-        }
 
-        // if egraph.union(matched_id, new_num_id) {
-        //     vec![new_num_id]
+
+        vec![]
+
+        // if egraph.union(matched_id, new_id) {
+        //     vec![new_id]
         // } else {
         //     vec![]
         // }
@@ -184,6 +170,9 @@ pub fn simplify(string_expr: RecExpr<SimpleLanguage>) -> RecExpr<SimpleLanguage>
 
     // Visualize the new E-Graph as a png
     my_runner.egraph.dot().to_png("target/new_egraph.png").unwrap();
+    for class in my_runner.egraph.classes() {
+        println!("class {:?}", class);
+    }
 
     // Return the best expression by leaving off the semi-colon
     best_expr
