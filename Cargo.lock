@@ -124,6 +124,7 @@ version = "0.1.0"
 dependencies = [
  "egg",
  "rand",
+ "rand_chacha",
 ]
 
 [[package]]
