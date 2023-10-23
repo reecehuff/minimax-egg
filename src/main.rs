@@ -6,7 +6,6 @@ mod utils;
 // use crate::utils::{generate_tree, simplify, SimpleLanguage};
 use crate::utils::*;
 
-
 /* main */
 fn main() {
     let expr: RecExpr<SimpleLanguage> = generate_tree(); 
