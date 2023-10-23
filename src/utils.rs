@@ -71,14 +71,6 @@ impl Applier<SimpleLanguage, ()> for MinOrMax {
         let num_a = egraph[a_id].nodes.last().unwrap().clone();
         let num_b = egraph[b_id].nodes.last().unwrap().clone();
 
-        // Print nodes a and nodes_b
-        for n_a in egraph[a_id].nodes.iter() {
-            println!("n_a {:?}", n_a);
-        }
-        for n_b in egraph[b_id].nodes.iter() {
-            println!("n_b {:?}", n_b);
-        }
-
         // Depending on if you want a min or max, add it to the egraph
         let new_id: Id; 
         if self.min_or_max == "min" {
@@ -97,14 +89,16 @@ impl Applier<SimpleLanguage, ()> for MinOrMax {
     }
 }
 
-pub fn simplify(string_expr: RecExpr<SimpleLanguage>) -> RecExpr<SimpleLanguage> {
+pub fn simplify(string_expr: RecExpr<SimpleLanguage>, visualize: bool) -> RecExpr<SimpleLanguage> {
 
     // Add the expression to the E-Graph
     let mut my_egraph: EGraph<SimpleLanguage, ()> = EGraph::default();
     my_egraph.add_expr(&string_expr);
 
     // Visualize the old E-Graph as a png
-    my_egraph.dot().to_png("target/old_egraph.png").unwrap();
+    if visualize {
+        my_egraph.dot().to_png("target/old_egraph.png").unwrap();
+    }
 
     // Define a runner to simplify the egraph 
     let my_runner = Runner::default().with_expr(&string_expr).run(&make_rules());
@@ -114,7 +108,9 @@ pub fn simplify(string_expr: RecExpr<SimpleLanguage>) -> RecExpr<SimpleLanguage>
     let (_, best_expr) = my_extractor.find_best(my_runner.roots[0]);
 
     // Visualize the new E-Graph as a png
-    my_runner.egraph.dot().to_png("target/new_egraph.png").unwrap();
+    if visualize {
+        my_runner.egraph.dot().to_png("target/new_egraph.png").unwrap();
+    }
 
     // Return the best expression by leaving off the semi-colon
     best_expr

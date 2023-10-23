@@ -3,108 +3,94 @@ use egg::*;
 
 /* Use's */
 use crate::utils::*;
-use rand::thread_rng;
-use rand::seq::SliceRandom;
+// use rand::thread_rng;
+// use rand::rngs::StdRng;
+// use rand::seq::SliceRandom;
+use rand::prelude::*;
+use rand_chacha::ChaCha8Rng;
 
-pub fn generate_tree(depth: u32) -> RecExpr<SimpleLanguage> {
-    // Define a simple expression for testing 
+
+pub fn generate_tree(depth: u32, simple: bool) -> RecExpr<SimpleLanguage> {
+
+    /* Define a simple expression for testing */  
+
     // let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
-    let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
+    if simple == true {
+        // let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
+        let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
+        return expr;
+    }
     
-    // Create a very large expression
+    /* Define a very large expression for evaluation */  
+
+    // Begin by defining the end leaves of the tree
     let num_leaves = i32::pow(2, depth); 
-    let mut evaluations: Vec<i32> = (0..num_leaves).collect();
-    evaluations.shuffle(&mut thread_rng());
-    println!("{:?}", evaluations);
+    let mut rng = ChaCha8Rng::seed_from_u64(2);
+    let mut evaluations: Vec<i32> = (-(num_leaves/2)..(num_leaves/2)).collect();
+    evaluations.shuffle(&mut rng);
+    println!("{}", evaluations.len());
 
-    let mut str_expr = format!("( white {} {} )", evaluations[0], evaluations[1]);
-    println!("old str_expr: {:?}", str_expr);
-    println!("new str_expr: {:?}", str_expr);
+    // Define our starting string expr
+    // We will add new branches to this string
+    // NOTE: The starting evals don't matter because we will replace them 
+    let mut str_expr = format!("( white {} {} )", 51, 23);
 
+    // Start by adding black branches to the tree
     let mut black_or_white = "black";
-    for chunk in evaluations.chunks(4) {
-        println!("running with {}", black_or_white);
-        str_expr = add_leaves(&mut str_expr, black_or_white, chunk); 
-        // panic!();
-        if let [a, b, c, d] = &chunk[..] {
-            // println!("a: {}", a);
-            // println!("b: {}", b);
-            // println!("c: {}", c);
-            // println!("d: {}", d);
-            let slice = [evaluations[*a as usize], evaluations[*b as usize], evaluations[*c as usize], evaluations[*d as usize]];
-            println!("slice : {:?}", slice);
-        }
+
+    // Grow the tree
+    for _ in 1..depth {
+        
+        // Add branches to the tree
+        str_expr = add_branches(&mut str_expr, black_or_white, &evaluations); 
+        
+        // Alternate between white and black branches
         if black_or_white == "white" {
             black_or_white = "black";
         } else {
             black_or_white = "white";
         }
     }
-    println!("new str_expr: {:?}", str_expr);
-    panic!();
 
-
-    // let indices = str_expr.char_indices();
-    // for (index, character) in indices {
-    //     println!("index    : {}", index);
-    //     println!("character: {}", character);
-    //     println!("is_digit : {}", character.is_digit(10));
-    // }
-
-    for spl in str_expr.split_whitespace() {
-        println!("spl      : {}", spl);
-        println!("is_digit : {}", spl.parse::<i32>().is_ok());
-    }
-
-    let mut parts: Vec<String> = Vec::new();
-    let mut new_integer = format!("( black {} {} )", evaluations[2], evaluations[3]);
-    
-
-    for spl in str_expr.split_whitespace() {
-        println!("{:?}", spl);
-        if spl.parse::<i32>().is_ok() {
-            parts.push(new_integer.to_string());
-            new_integer = format!("( black {} {} )", evaluations[4], evaluations[5]);
-        } else {
-            parts.push(spl.to_string());
-        }
-    }
-
-    str_expr = parts.join(" ");
-
-    println!("{}", str_expr);
-
-    // panic!();
-
+    // Convert the string to a RecExpr
     let expr: RecExpr<SimpleLanguage> = str_expr.parse().unwrap();
 
     // Return the expression 
     expr
+
 }
 
-fn add_leaves(str_expr: &mut String, bw: &'static str, indices: &[i32]) -> String {
+fn add_branches(str_expr: &mut String, bw: &'static str, indices: &Vec<i32>) -> String {
 
+    // Unravel the indices of the evaluations vector
+    let mut c1 = 0;
+    let mut c2 = 1; 
+    
+    // Define parts as a vector of strings
+    // We will concatenate to this string to create our new str_expr
+    let mut parts: Vec<String> = Vec::new();
+
+    // Define the new branch of the tree as mutable 
+    let mut new_branch: String;
+    
+    // Split the input str_expr by the whitespace and loop through 
     for spl in str_expr.split_whitespace() {
-        println!("spl      : {}", spl);
-        println!("is_digit : {}", spl.parse::<i32>().is_ok());
-    }
+        // If the particular split is an integer, then replace with new branch 
+        if spl.parse::<i32>().is_ok() {
 
-    if let [a,b,c,d] = &indices[..] {
-        
-        let mut parts: Vec<String> = Vec::new();
-        let mut new_integer = format!("( {} {} {} )", bw, a, b);
-        
+            // Add indices to the new branch of the tree and push it to parts
+            new_branch = format!("( {} {} {} )", bw, indices[c1], indices[c2]);
+            parts.push(new_branch.to_string());
 
-        for spl in str_expr.split_whitespace() {
-            println!("{:?}", spl);
-            if spl.parse::<i32>().is_ok() {
-                parts.push(new_integer.to_string());
-                new_integer = format!("( {} {} {} )", bw, c, d);
-            } else {
-                parts.push(spl.to_string());
-            }
+            // Update the indices
+            c1 += 2; c2 += 2; 
+
+        // If not an integer, then add to the parts Vec
+        } else {
+            parts.push(spl.to_string());
         }
-        return parts.join(" ");
     }
-    str_expr.to_string()
+    // Join the Vec of String's into one string and return it 
+    parts.join(" ")
+
 }
