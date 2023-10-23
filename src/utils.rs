@@ -1,14 +1,5 @@
 use egg::{*, rewrite as rw}; 
 
-pub fn generate_tree() -> RecExpr<SimpleLanguage> {
-    // Define a simple expression
-    // let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
-    let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
-    
-    // Return the expression 
-    expr
-}
-
 define_language! {
     pub enum SimpleLanguage {
 
@@ -79,6 +70,14 @@ impl Applier<SimpleLanguage, ()> for MinOrMax {
         // NOTE: evaluation being the last node is simply by construction
         let num_a = egraph[a_id].nodes.last().unwrap().clone();
         let num_b = egraph[b_id].nodes.last().unwrap().clone();
+
+        // Print nodes a and nodes_b
+        for n_a in egraph[a_id].nodes.iter() {
+            println!("n_a {:?}", n_a);
+        }
+        for n_b in egraph[b_id].nodes.iter() {
+            println!("n_b {:?}", n_b);
+        }
 
         // Depending on if you want a min or max, add it to the egraph
         let new_id: Id; 
