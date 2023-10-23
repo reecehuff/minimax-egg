@@ -1,6 +1,6 @@
 /* Imports */
 use egg::*;
-use std::env;
+use argparse::{ArgumentParser, StoreTrue, Store};
 use std::path::Path;
 use std::time::Instant;
 use std::error::Error;
@@ -19,14 +19,36 @@ use crate::tree::generate_tree;
 /* main */
 fn main() {
     
-    // Parse the command line arguments
-    let args: Vec<String> = env::args().collect();
+    // Default command line arguments
+    let mut tree_depth: u32 = 3;
+    let mut simple_expr: bool = false; 
+    let mut visualize: bool = false; 
+    let mut init_csv: bool = false; 
+    let mut csv_path_str:String = "target/performance.csv".to_string();
+    {  // this block limits scope of borrows by ap.refer() method
+        let mut ap = ArgumentParser::new();
+        ap.set_description("minimax-egg's command-line arguments.");
+        ap.refer(&mut tree_depth)
+            .add_option(&["-d", "--tree_depth"], Store,
+            "The depth of the tree");
+        ap.refer(&mut simple_expr)
+            .add_option(&["-s", "--simple_expr"], StoreTrue,
+            "Uses a simple RecExpr when true");
+        ap.refer(&mut visualize)
+            .add_option(&["-v", "--visualize"], StoreTrue,
+            "Visualizes the egraphs when true");
+        ap.refer(&mut init_csv)
+            .add_option(&["-i", "--init_csv"], StoreTrue,
+            "Initialize the csv when when true");
+        ap.refer(&mut csv_path_str)
+            .add_option(&["-p", "--csv_path"], Store,
+            "Path to the performance csv when true");
+        ap.parse_args_or_exit();
+    }
+    let csv_path = Path::new(&csv_path_str);
 
-    let tree_depth = args[1].parse::<u32>().expect("Failed to convert tree_depth to u32");
-    let simple_expr = args[2].parse::<bool>().unwrap_or_else(|_| panic!("simple_expr must be 'true' or 'false'"));
-    let visualize = args[3].parse::<bool>().unwrap_or_else(|_| panic!("visualize must be 'true' or 'false'"));
-    let init_csv = args[4].parse::<bool>().unwrap_or_else(|_| panic!("init_csv must be 'true' or 'false'"));
-    let csv_path = Path::new(&args[5]); //.parse::<Path>().unwrap_or_else(|_| panic!("init_csv must be 'true' or 'false'"));
+    // Print tree depth
+    println!("tree_depth = {}", tree_depth);
 
     // Generating a massive tree 
     let now_tree = Instant::now();
