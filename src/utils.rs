@@ -39,26 +39,29 @@ fn make_rules() -> Vec<Rewrite<SimpleLanguage, ()>> {
         // Again, when considering a move as the white player (us),
         // we pick the move that maximizes the evaluation
         // rw!("white-wants-max"; "(white ?a ?b)" => ""),
-        rw!("white-wants-max"; "(white ?a ?b)" => { MaxApplier {
+        rw!("white-wants-max"; "(white ?a ?b)" => { MinOrMax {
             a: "?a".parse().unwrap(),
             b: "?b".parse().unwrap(),
+            min_or_max: "max",
         }}),
 
         // Similarly, when considering a move as the black player (our opponent),
         // we assume they play perfectly (i.e., pick the move that minimizing the eval)
-        rw!("black-wants-min"; "(black ?a ?b)" => { MinApplier {
-            a: "?b".parse().unwrap(),
-            b: "?a".parse().unwrap(),
+        rw!("black-wants-min"; "(black ?a ?b)" => { MinOrMax {
+            a: "?a".parse().unwrap(),
+            b: "?b".parse().unwrap(),
+            min_or_max: "min",
         }}),
     ]
 }
 
 // See https://docs.rs/egg/latest/egg/trait.Applier.html for more information
-struct MaxApplier {
+struct MinOrMax {
     a: Var,
-    b: Var
+    b: Var,
+    min_or_max: &'static str
 }
-impl Applier<SimpleLanguage, ()> for MaxApplier {
+impl Applier<SimpleLanguage, ()> for MinOrMax {
 
     fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
 
@@ -72,39 +75,23 @@ impl Applier<SimpleLanguage, ()> for MaxApplier {
         let a_id = subst[self.a];
         let b_id = subst[self.b];
 
-        // Isolate the evaluation and select the maximum and add it to egraph
+        // Isolate the evaluations of nodes a and b
         // NOTE: evaluation being the last node is simply by construction
         let num_a = egraph[a_id].nodes.last().unwrap().clone();
         let num_b = egraph[b_id].nodes.last().unwrap().clone();
-        let max_id = egraph.add(num_a.max(num_b));
 
-        // Add the Id of the maximum evaluation only when it hasn't already been added
-        if egraph.union(matched_id, max_id) {
-            vec![max_id]
+        // Depending on if you want a min or max, add it to the egraph
+        let new_id: Id; 
+        if self.min_or_max == "min" {
+            new_id = egraph.add(num_a.min(num_b));
+        } else if self.min_or_max == "max" {
+            new_id = egraph.add(num_a.max(num_b));
         } else {
-            vec![]
+            panic!("min_or_max &str needs to be \"min\" or \"max\"")
         }
-    }
-}
-
-// MinApplier is the exact same as MaxApplier but uses .min() instead of .max()
-// See https://docs.rs/egg/latest/egg/trait.Applier.html for more information
-struct MinApplier {
-    a: Var,
-    b: Var
-}
-impl Applier<SimpleLanguage, ()> for MinApplier {
-
-    fn apply_one(&self, egraph: &mut EGraph<SimpleLanguage,()>, matched_id: Id, subst: &Subst, _: Option<&PatternAst<SimpleLanguage>>, _: Symbol) -> Vec<Id> {
-
-        // See MaxApplier for explanation
-        let a_id = subst[self.a];
-        let b_id = subst[self.b];
-        let num_a = egraph[a_id].nodes.last().unwrap().clone();
-        let num_b = egraph[b_id].nodes.last().unwrap().clone();
-        let min_id = egraph.add(num_a.min(num_b));
-        if egraph.union(matched_id, min_id) {
-            vec![min_id]
+        // Add the Id of the evaluation only when it hasn't already been added
+        if egraph.union(matched_id, new_id) {
+            vec![new_id]
         } else {
             vec![]
         }
