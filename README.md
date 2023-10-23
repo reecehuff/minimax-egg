@@ -2,7 +2,7 @@
 
 ### A Rust package utilizing egg ([e-graphs good](https://github.com/egraphs-good/egg)) for the [Minimax](https://en.wikipedia.org/wiki/Minimax) combinatorial search algorithm 
 
-### Basic usage
+## Basic usage
 
 `minimax-egg` is a Rust package that uses [`rust-argparse`](https://github.com/tailhook/rust-argparse) functionality. 
 
@@ -26,7 +26,7 @@ All command-line arguments may be viewed with the `-h` flag, e.g.,
 ./target/release/minimax-egg -h
 ```
 
-### Performance testing
+## Performance testing
 
 In order to test the performance of `minimax-egg`, simply run
 ```
@@ -40,7 +40,7 @@ which will apply the Rust package to trees with depths of 2 to 20. Performance w
 
 NOTE: If you wish to increase the largest depth tested, you may have to adjust the settings of the Runner in [src/utils.rs](https://github.com/reecehuff/minimax-egg/blob/9b6acc11481557bed10ca97ed3b3c98c27a2bc61/src/utils.rs#L104).
 
-### Future work
+## Future work
 - [ ] Each branch in the tree is split into two. Future iterations could generalize the `Applier` (see [`src/utils.rs`](src/utils.rs)) to operate on [`List`](https://docs.rs/egg/latest/egg/macro.define_language.html)'s. This would also change the construction of the tree in `generate_tree()` (see [`src/tree.rs`](src/tree.rs)).
 - [ ] The `Applier` simply merges the e-node with the max or min SimpleLanguage::Num() to its parent. 
 - [ ] The performance evaluation is currently a basic timer around computationally expensive functions. A better approach could use [Tests](https://doc.rust-lang.org/cargo/guide/tests.html) among other things. 
