@@ -3,12 +3,8 @@ use egg::*;
 
 /* Use's */
 use crate::utils::*;
-// use rand::thread_rng;
-// use rand::rngs::StdRng;
-// use rand::seq::SliceRandom;
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
-
 
 pub fn generate_tree(depth: u32, simple: bool) -> RecExpr<SimpleLanguage> {
 
