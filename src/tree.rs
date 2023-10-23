@@ -28,7 +28,7 @@ pub fn generate_tree(depth: u32, simple: bool) -> RecExpr<SimpleLanguage> {
     let mut rng = ChaCha8Rng::seed_from_u64(2);
     let mut evaluations: Vec<i32> = (-(num_leaves/2)..(num_leaves/2)).collect();
     evaluations.shuffle(&mut rng);
-    println!("{}", evaluations.len());
+    println!("num_leaves = {}", evaluations.len());
 
     // Define our starting string expr
     // We will add new branches to this string
