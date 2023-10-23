@@ -101,7 +101,12 @@ pub fn simplify(string_expr: RecExpr<SimpleLanguage>, visualize: bool) -> RecExp
     }
 
     // Define a runner to simplify the egraph 
-    let my_runner = Runner::default().with_expr(&string_expr).run(&make_rules());
+    let my_runner = Runner::default()
+                                                            .with_iter_limit(10)
+                                                            .with_node_limit(1_000_000_000)
+                                                            .with_expr(&string_expr)
+                                                            .with_scheduler(SimpleScheduler)
+                                                            .run(&make_rules());
 
     // Extract the best expression using an extractor
     let my_extractor = Extractor::new(&my_runner.egraph, AstSize);
