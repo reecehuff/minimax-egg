@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Inputs
-deepest_tree=16
+deepest_tree=20
 
 # Build the cargo package
 cargo build --release
@@ -12,13 +12,13 @@ do
     echo "==============================================================="
     if [[ $i == 2 ]]
     then 
-        echo ./target/release/minimax-egg $i false false true target/performance.csv
+        echo ./target/release/minimax-egg -d $i --init_csv
         echo "tree_depth = " $i
-        ./target/release/minimax-egg $i false false true target/performance.csv
+        ./target/release/minimax-egg -d $i --init_csv
     else
-        echo ./target/release/minimax-egg $i false false false target/performance.csv
+        echo ./target/release/minimax-egg -d $i 
         echo "tree_depth = " $i
-        ./target/release/minimax-egg $i false false false target/performance.csv
+        ./target/release/minimax-egg -d $i 
     fi
 done
 
