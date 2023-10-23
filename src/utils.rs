@@ -13,8 +13,8 @@ pub fn test_code(){
 pub fn generate_tree() -> RecExpr<SimpleLanguage> {
     // Define the expression
     // let expr: RecExpr<SimpleLanguage> = "(list 3 4)".parse().unwrap();
-    let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
-    // let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
+    // let expr: RecExpr<SimpleLanguage> = "(white (black -3 -1) (black 6 -4) )".parse().unwrap();
+    let expr: RecExpr<SimpleLanguage> = "(white (black (white -4 2) (white -10 10)) (black (white 6 -2) (white 3 -5)) )".parse().unwrap();
     
     // Return the expression 
     expr
@@ -66,6 +66,7 @@ fn make_rules() -> Vec<Rewrite<SimpleLanguage, ()>> {
     vec![
         // Again, when considering a move as the white player (us),
         // we pick the move that maximizes the evaluation
+        // rw!("white-wants-max"; "(white ?a ?b)" => ""),
         rw!("white-wants-max"; "(white ?a ?b)" => { MaxApplier {
             a: "?a".parse().unwrap(),
             b: "?b".parse().unwrap(),
@@ -106,18 +107,47 @@ impl Applier<SimpleLanguage, ()> for MaxApplier {
         // let temp: EClass<SimpleLanguage, ()> = egraph[matched_id];
         println!("eclass at the parent Id: {:?}", egraph[matched_id]);
 
-        for node in egraph[a_id].nodes.iter() {
-            println!("node: {}", node);
+        // Compare the two numbers; numbers being the last node by construction
+        let num_a = egraph[a_id].nodes.last().unwrap().clone();
+        let num_b = egraph[b_id].nodes.last().unwrap().clone();
+        let new_num = num_a.max(num_b);
+        let new_id = egraph.add(new_num);
 
-        }
 
-        vec![]
+        // let new_num = num_a.clone().max(num_b.clone());
 
-        // if egraph.union(matched_id, new_id) {
-        //     vec![new_id]
+        // println!("a = {:?}", num_a.clone());
+        // println!("b = {:?}", num_b.clone());
+        // println!("m = {:?}", new_num.clone());
+
+        // Add the larger number to the egraph:
+        // let new_id: Id; 
+        // if num_a > num_b {
+        //     new_id = egraph.add(num_a);
+        // } else {
+        //     new_id = egraph.add(num_b);
+        // }
+
+        // // let new_id = egraph.add(SimpleLanguage::Num(0));
+        // let new_id = egraph.add(egraph[a_id].nodes[0].clone());
+        
+        // for node in egraph[a_id].nodes.iter() {
+        //     println!("node: {}", node);
+        // }
+
+        // if egraph.union(matched_id, a0b0c0) {
+        //     vec![a0b0c0]
         // } else {
         //     vec![]
         // }
+
+        // vec![]
+
+        if egraph.union(matched_id, new_id) {
+            vec![new_id]
+        } else {
+            vec![]
+        }
     }
 }
 
