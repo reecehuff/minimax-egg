@@ -34,7 +34,9 @@ In order to test the performance of `minimax-egg`, simply run
 ```
 which will apply the Rust package to trees with depths of 2 to 20. Performance will be saved to the `target/performance.csv` by default, and additionally, it will be plotted and saved as a matplotlib figure in the `figures` directory (e.g., `figures/egg_time_secs.png`). 
 
-![egg_speed](figures/egg_time_secs.png)
+<!-- ![egg_speed](figures/egg_time_secs.png) -->
+<img src="https://github.com/reecehuff/minimax-egg/blob/main/figures/egg_time_secs.png" width=70%>
+
 
 NOTE: If you wish to increase the largest depth tested, you may have to adjust the settings of the Runner in [src/utils.rs](https://github.com/reecehuff/minimax-egg/blob/9b6acc11481557bed10ca97ed3b3c98c27a2bc61/src/utils.rs#L104).
 
