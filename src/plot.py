@@ -4,8 +4,6 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-os.environ["PATH"] += os.pathsep + '/usr/local/texlive/2021/bin/universal-darwin'
-plt.rcParams['font.family'] = 'Avenir'
 
 #%% Settings
 #---colors
@@ -69,7 +67,8 @@ def plot_loglog(x,y,in_color):
 
     # Save the plot as a PNG
     plt.tight_layout()
-    plt.savefig('target/%s.png' % y, dpi=600)
+    os.makedirs("figures", exist_ok=True)
+    plt.savefig('figures/%s.png' % y, dpi=600)
 
 #%% Plot the performance of egg
 plot_loglog('tree_depth', 'egg_time_secs', color1)
